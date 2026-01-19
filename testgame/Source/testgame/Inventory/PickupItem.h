@@ -45,6 +45,10 @@ struct FItemData
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
 	bool bCanUse;
 
+	/** Mesh to use when item is held in hand */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
+	UStaticMesh* HeldMesh;
+
 	FItemData()
 		: ItemID(NAME_None)
 		, DisplayName(FText::GetEmpty())
@@ -53,6 +57,7 @@ struct FItemData
 		, MaxStackSize(1)
 		, Quantity(1)
 		, bCanUse(false)
+		, HeldMesh(nullptr)
 	{
 	}
 
@@ -95,8 +100,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Pickup")
 	void SetHighlighted(bool bHighlight);
 
+	/** Get the static mesh component */
+	UFUNCTION(BlueprintCallable, Category = "Pickup")
+	UStaticMeshComponent* GetItemMesh() const { return ItemMesh; }
+
 protected:
-	/** Collision sphere for overlap detection */
+	/** Collision sphere for interaction detection */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	USphereComponent* CollisionSphere;
 
@@ -124,10 +133,25 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Visual")
 	float BobSpeed;
 
+	/** Highlight color when player looks at item */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Visual")
+	FLinearColor HighlightColor;
+
 private:
 	/** Starting location for bobbing effect */
 	FVector StartLocation;
 
 	/** Time accumulator for bobbing */
 	float BobTime;
+
+	/** Original materials for restoring after highlight */
+	UPROPERTY()
+	TArray<UMaterialInterface*> OriginalMaterials;
+
+	/** Dynamic material instances for highlighting */
+	UPROPERTY()
+	TArray<UMaterialInstanceDynamic*> DynamicMaterials;
+
+	/** Whether currently highlighted */
+	bool bIsHighlighted;
 };

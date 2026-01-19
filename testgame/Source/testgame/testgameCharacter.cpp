@@ -4,6 +4,7 @@
 #include "Engine/LocalPlayer.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/StaticMeshComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/Controller.h"
@@ -54,6 +55,15 @@ AtestgameCharacter::AtestgameCharacter()
 	// Create interaction component and link it to the inventory
 	InteractionComponent = CreateDefaultSubobject<UInteractionComponent>(TEXT("InteractionComponent"));
 	InteractionComponent->SetInventoryComponent(InventoryComponent);
+
+	// Create held item mesh - will be attached to hand socket
+	HeldItemMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("HeldItemMesh"));
+	HeldItemMesh->SetupAttachment(GetMesh()); // Attach to skeletal mesh, will reattach to socket in blueprint
+	HeldItemMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	HeldItemMesh->SetVisibility(false); // Hidden until item is equipped
+
+	// Default socket name for right hand
+	HeldItemSocketName = FName("hand_rSocket");
 
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
@@ -150,5 +160,41 @@ void AtestgameCharacter::DoInteract()
 	if (InteractionComponent)
 	{
 		InteractionComponent->TryInteract();
+	}
+}
+
+void AtestgameCharacter::EquipItem(const FItemData& Item)
+{
+	if (!Item.IsValid())
+	{
+		return;
+	}
+
+	EquippedItem = Item;
+
+	if (HeldItemMesh)
+	{
+		// Set the mesh if one is specified
+		if (Item.HeldMesh)
+		{
+			HeldItemMesh->SetStaticMesh(Item.HeldMesh);
+		}
+		
+		// Attach to the hand socket
+		HeldItemMesh->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, HeldItemSocketName);
+		HeldItemMesh->SetVisibility(true);
+		
+		UE_LOG(Logtestgame, Log, TEXT("Equipped item: %s"), *Item.ItemID.ToString());
+	}
+}
+
+void AtestgameCharacter::UnequipItem()
+{
+	EquippedItem = FItemData();
+
+	if (HeldItemMesh)
+	{
+		HeldItemMesh->SetVisibility(false);
+		HeldItemMesh->SetStaticMesh(nullptr);
 	}
 }

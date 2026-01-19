@@ -3,6 +3,7 @@
 #include "InteractionComponent.h"
 #include "PickupItem.h"
 #include "InventoryComponent.h"
+#include "testgameCharacter.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "testgame.h"
@@ -11,7 +12,7 @@ UInteractionComponent::UInteractionComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	
-	InteractionDistance = 300.f;
+	InteractionDistance = 500.f; // Increased for easier pickup
 	TraceChannel = ECC_Visibility;
 	CurrentLookAtItem = nullptr;
 	PreviousLookAtItem = nullptr;
@@ -33,7 +34,7 @@ void UInteractionComponent::TickComponent(float DeltaTime, ELevelTick TickType, 
 	if (CurrentLookAtItem != PreviousLookAtItem)
 	{
 		// Unhighlight previous item
-		if (PreviousLookAtItem)
+		if (PreviousLookAtItem && IsValid(PreviousLookAtItem))
 		{
 			PreviousLookAtItem->SetHighlighted(false);
 			OnStopLookingAtItem.Broadcast();
@@ -54,6 +55,7 @@ bool UInteractionComponent::TryInteract()
 {
 	if (!CurrentLookAtItem || !CurrentLookAtItem->CanBePickedUp())
 	{
+		UE_LOG(Logtestgame, Log, TEXT("TryInteract: No item to pick up or item cannot be picked up"));
 		return false;
 	}
 
@@ -72,9 +74,24 @@ bool UInteractionComponent::TryInteract()
 		return false;
 	}
 
+	// Get the mesh from the pickup item for holding
+	if (CurrentLookAtItem->GetItemMesh() && CurrentLookAtItem->GetItemMesh()->GetStaticMesh())
+	{
+		ItemData.HeldMesh = CurrentLookAtItem->GetItemMesh()->GetStaticMesh();
+	}
+
 	// Add item to inventory
 	if (InventoryComponent->AddItem(ItemData))
 	{
+		UE_LOG(Logtestgame, Log, TEXT("Successfully picked up item: %s"), *ItemData.ItemID.ToString());
+		
+		// Equip the item in the character's hand
+		AtestgameCharacter* Character = Cast<AtestgameCharacter>(GetOwner());
+		if (Character)
+		{
+			Character->EquipItem(ItemData);
+		}
+		
 		// Notify the item it was picked up
 		CurrentLookAtItem->OnPickedUp(GetOwner());
 		
@@ -113,12 +130,16 @@ void UInteractionComponent::PerformInteractionTrace()
 	FHitResult HitResult;
 	FCollisionQueryParams QueryParams;
 	QueryParams.AddIgnoredActor(GetOwner());
+	QueryParams.bTraceComplex = false;
 
-	bool bHit = GetWorld()->LineTraceSingleByChannel(
+	// Use a sphere trace for easier detection
+	bool bHit = GetWorld()->SweepSingleByChannel(
 		HitResult,
 		TraceStart,
 		TraceEnd,
+		FQuat::Identity,
 		TraceChannel,
+		FCollisionShape::MakeSphere(30.f), // 30 unit radius sphere trace
 		QueryParams
 	);
 

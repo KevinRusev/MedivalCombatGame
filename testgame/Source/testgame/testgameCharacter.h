@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "Logging/LogMacros.h"
+#include "PickupItem.h"
 #include "testgameCharacter.generated.h"
 
 class USpringArmComponent;
@@ -40,6 +41,10 @@ class AtestgameCharacter : public ACharacter
 	/** Interaction component for picking up items */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
 	UInteractionComponent* InteractionComponent;
+
+	/** Mesh for held item in hand */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
+	UStaticMeshComponent* HeldItemMesh;
 	
 protected:
 
@@ -62,6 +67,14 @@ protected:
 	/** Interact Input Action (E key) */
 	UPROPERTY(EditAnywhere, Category="Input")
 	UInputAction* InteractAction;
+
+	/** Socket name on skeleton to attach held item */
+	UPROPERTY(EditAnywhere, Category="Inventory")
+	FName HeldItemSocketName;
+
+	/** Currently equipped item data */
+	UPROPERTY(BlueprintReadOnly, Category="Inventory")
+	FItemData EquippedItem;
 
 public:
 
@@ -103,6 +116,22 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Input")
 	virtual void DoInteract();
 
+	/** Equip an item to show in character's hand */
+	UFUNCTION(BlueprintCallable, Category="Inventory")
+	void EquipItem(const FItemData& Item);
+
+	/** Unequip current item */
+	UFUNCTION(BlueprintCallable, Category="Inventory")
+	void UnequipItem();
+
+	/** Check if character has an item equipped */
+	UFUNCTION(BlueprintCallable, Category="Inventory")
+	bool HasItemEquipped() const { return EquippedItem.IsValid(); }
+
+	/** Get currently equipped item */
+	UFUNCTION(BlueprintCallable, Category="Inventory")
+	FItemData GetEquippedItem() const { return EquippedItem; }
+
 public:
 
 	/** Returns CameraBoom subobject **/
@@ -116,5 +145,7 @@ public:
 
 	/** Returns InteractionComponent subobject **/
 	FORCEINLINE class UInteractionComponent* GetInteractionComponent() const { return InteractionComponent; }
-};
 
+	/** Returns HeldItemMesh subobject **/
+	FORCEINLINE class UStaticMeshComponent* GetHeldItemMesh() const { return HeldItemMesh; }
+};
