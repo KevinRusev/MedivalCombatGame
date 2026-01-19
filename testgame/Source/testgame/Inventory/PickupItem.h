@@ -45,9 +45,13 @@ struct FItemData
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
 	bool bCanUse;
 
-	/** Mesh to use when item is held in hand */
+	/** Mesh to use when item is held in hand (simple static mesh) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
 	UStaticMesh* HeldMesh;
+
+	/** Blueprint class to spawn when item is held (for complex items) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
+	TSubclassOf<AActor> HeldActorClass;
 
 	FItemData()
 		: ItemID(NAME_None)

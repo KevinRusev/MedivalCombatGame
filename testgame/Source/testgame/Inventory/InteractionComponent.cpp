@@ -74,8 +74,8 @@ bool UInteractionComponent::TryInteract()
 		return false;
 	}
 
-	// Get the mesh from the pickup item for holding
-	if (CurrentLookAtItem->GetItemMesh() && CurrentLookAtItem->GetItemMesh()->GetStaticMesh())
+	// Get the mesh from the pickup item for holding (if not already set)
+	if (!ItemData.HeldMesh && CurrentLookAtItem->GetItemMesh() && CurrentLookAtItem->GetItemMesh()->GetStaticMesh())
 	{
 		ItemData.HeldMesh = CurrentLookAtItem->GetItemMesh()->GetStaticMesh();
 	}

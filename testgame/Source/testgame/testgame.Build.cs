@@ -15,6 +15,8 @@ public class testgame : ModuleRules
 			"InputCore",
 			"EnhancedInput",
 			"AIModule",
+			"NavigationSystem",
+			"GameplayTasks",
 			"StateTreeModule",
 			"GameplayStateTreeModule",
 			"UMG",
@@ -26,6 +28,7 @@ public class testgame : ModuleRules
 		PublicIncludePaths.AddRange(new string[] {
 			"testgame",
 			"testgame/Inventory",
+			"testgame/Enemy",
 			"testgame/Variant_Platforming",
 			"testgame/Variant_Platforming/Animation",
 			"testgame/Variant_Combat",

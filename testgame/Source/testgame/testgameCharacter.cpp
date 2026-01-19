@@ -5,6 +5,7 @@
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/ChildActorComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/Controller.h"
@@ -56,14 +57,19 @@ AtestgameCharacter::AtestgameCharacter()
 	InteractionComponent = CreateDefaultSubobject<UInteractionComponent>(TEXT("InteractionComponent"));
 	InteractionComponent->SetInventoryComponent(InventoryComponent);
 
-	// Create held item mesh - will be attached to hand socket
+	// Create held item mesh - will be attached to hand socket (for simple static mesh items)
 	HeldItemMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("HeldItemMesh"));
 	HeldItemMesh->SetupAttachment(GetMesh()); // Attach to skeletal mesh, will reattach to socket in blueprint
 	HeldItemMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	HeldItemMesh->SetVisibility(false); // Hidden until item is equipped
 
 	// Default socket name for right hand
-	HeldItemSocketName = FName("hand_rSocket");
+	HeldItemSocketName = FName("hand_r");
+
+	// Create child actor component for complex Blueprint items - attach directly to hand socket
+	HeldItemActor = CreateDefaultSubobject<UChildActorComponent>(TEXT("HeldItemActor"));
+	HeldItemActor->SetupAttachment(GetMesh(), HeldItemSocketName);
+	HeldItemActor->SetVisibility(false); // Hidden until item is equipped
 
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
@@ -170,21 +176,35 @@ void AtestgameCharacter::EquipItem(const FItemData& Item)
 		return;
 	}
 
+	// Unequip any currently equipped item first
+	UnequipItem();
+
 	EquippedItem = Item;
 
-	if (HeldItemMesh)
+	// Check if we should spawn a Blueprint actor (complex item)
+	if (Item.HeldActorClass && HeldItemActor)
 	{
-		// Set the mesh if one is specified
-		if (Item.HeldMesh)
+		// Use the Blueprint actor
+		HeldItemActor->SetChildActorClass(Item.HeldActorClass);
+		HeldItemActor->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, HeldItemSocketName);
+		HeldItemActor->SetVisibility(true);
+		
+		// Disable collision on the spawned actor so it doesn't collide with player
+		if (AActor* ChildActor = HeldItemActor->GetChildActor())
 		{
-			HeldItemMesh->SetStaticMesh(Item.HeldMesh);
+			ChildActor->SetActorEnableCollision(false);
 		}
 		
-		// Attach to the hand socket
+		UE_LOG(Logtestgame, Log, TEXT("Equipped Blueprint item: %s"), *Item.ItemID.ToString());
+	}
+	else if (Item.HeldMesh && HeldItemMesh)
+	{
+		// Use the simple static mesh
+		HeldItemMesh->SetStaticMesh(Item.HeldMesh);
 		HeldItemMesh->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, HeldItemSocketName);
 		HeldItemMesh->SetVisibility(true);
 		
-		UE_LOG(Logtestgame, Log, TEXT("Equipped item: %s"), *Item.ItemID.ToString());
+		UE_LOG(Logtestgame, Log, TEXT("Equipped mesh item: %s"), *Item.ItemID.ToString());
 	}
 }
 
@@ -192,9 +212,17 @@ void AtestgameCharacter::UnequipItem()
 {
 	EquippedItem = FItemData();
 
+	// Hide static mesh
 	if (HeldItemMesh)
 	{
 		HeldItemMesh->SetVisibility(false);
 		HeldItemMesh->SetStaticMesh(nullptr);
+	}
+
+	// Hide and clear child actor
+	if (HeldItemActor)
+	{
+		HeldItemActor->SetVisibility(false);
+		HeldItemActor->SetChildActorClass(nullptr);
 	}
 }

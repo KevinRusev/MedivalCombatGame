@@ -13,6 +13,7 @@ class UCameraComponent;
 class UInputAction;
 class UInventoryComponent;
 class UInteractionComponent;
+class UChildActorComponent;
 struct FInputActionValue;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
@@ -42,9 +43,13 @@ class AtestgameCharacter : public ACharacter
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
 	UInteractionComponent* InteractionComponent;
 
-	/** Mesh for held item in hand */
+	/** Mesh for held item in hand (for simple static mesh items) */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
 	UStaticMeshComponent* HeldItemMesh;
+
+	/** Child actor for held item (for complex Blueprint items) */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
+	UChildActorComponent* HeldItemActor;
 	
 protected:
 
