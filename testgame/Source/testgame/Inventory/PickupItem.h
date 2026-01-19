@@ -133,24 +133,12 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Visual")
 	float BobSpeed;
 
-	/** Highlight color when player looks at item */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Visual")
-	FLinearColor HighlightColor;
-
 private:
 	/** Starting location for bobbing effect */
 	FVector StartLocation;
 
 	/** Time accumulator for bobbing */
 	float BobTime;
-
-	/** Original materials for restoring after highlight */
-	UPROPERTY()
-	TArray<UMaterialInterface*> OriginalMaterials;
-
-	/** Dynamic material instances for highlighting */
-	UPROPERTY()
-	TArray<UMaterialInstanceDynamic*> DynamicMaterials;
 
 	/** Whether currently highlighted */
 	bool bIsHighlighted;

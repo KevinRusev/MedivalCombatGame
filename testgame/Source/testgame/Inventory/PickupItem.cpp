@@ -3,7 +3,6 @@
 #include "PickupItem.h"
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
-#include "Materials/MaterialInstanceDynamic.h"
 
 APickupItem::APickupItem()
 {
@@ -31,35 +30,12 @@ APickupItem::APickupItem()
 	BobSpeed = 2.f;
 	BobTime = 0.f;
 	bIsHighlighted = false;
-	HighlightColor = FLinearColor(0.5f, 1.0f, 0.3f, 1.0f); // Green glow
 }
 
 void APickupItem::BeginPlay()
 {
 	Super::BeginPlay();
 	StartLocation = GetActorLocation();
-
-	// Store original materials and create dynamic instances for highlighting
-	if (ItemMesh)
-	{
-		int32 NumMaterials = ItemMesh->GetNumMaterials();
-		for (int32 i = 0; i < NumMaterials; ++i)
-		{
-			UMaterialInterface* OrigMat = ItemMesh->GetMaterial(i);
-			OriginalMaterials.Add(OrigMat);
-			
-			if (OrigMat)
-			{
-				UMaterialInstanceDynamic* DynMat = UMaterialInstanceDynamic::Create(OrigMat, this);
-				DynamicMaterials.Add(DynMat);
-				ItemMesh->SetMaterial(i, DynMat);
-			}
-			else
-			{
-				DynamicMaterials.Add(nullptr);
-			}
-		}
-	}
 }
 
 void APickupItem::Tick(float DeltaTime)
@@ -79,17 +55,12 @@ void APickupItem::Tick(float DeltaTime)
 		NewLocation.Z += FMath::Sin(BobTime) * BobAmplitude;
 		SetActorLocation(NewLocation);
 
-		// Pulse highlight effect when highlighted
-		if (bIsHighlighted)
+		// Pulse scale effect when highlighted
+		if (bIsHighlighted && ItemMesh)
 		{
-			float PulseValue = (FMath::Sin(BobTime * 3.0f) + 1.0f) * 0.5f; // 0 to 1 pulse
-			for (UMaterialInstanceDynamic* DynMat : DynamicMaterials)
-			{
-				if (DynMat)
-				{
-					DynMat->SetVectorParameterValue(TEXT("EmissiveColor"), HighlightColor * (1.0f + PulseValue * 2.0f));
-				}
-			}
+			float PulseValue = (FMath::Sin(BobTime * 4.0f) + 1.0f) * 0.5f; // 0 to 1 pulse
+			float Scale = 1.2f + (PulseValue * 0.2f); // Scale between 1.2 and 1.4
+			ItemMesh->SetRelativeScale3D(FVector(Scale, Scale, Scale));
 		}
 	}
 }
@@ -122,20 +93,14 @@ void APickupItem::SetHighlighted(bool bHighlight)
 		ItemMesh->SetRenderCustomDepth(bHighlight);
 		ItemMesh->SetCustomDepthStencilValue(bHighlight ? 1 : 0);
 
-		// Also set emissive color for a glow effect
-		for (UMaterialInstanceDynamic* DynMat : DynamicMaterials)
+		// Scale up slightly when highlighted for visual feedback
+		if (bHighlight)
 		{
-			if (DynMat)
-			{
-				if (bHighlight)
-				{
-					DynMat->SetVectorParameterValue(TEXT("EmissiveColor"), HighlightColor);
-				}
-				else
-				{
-					DynMat->SetVectorParameterValue(TEXT("EmissiveColor"), FLinearColor::Black);
-				}
-			}
+			ItemMesh->SetRelativeScale3D(FVector(1.3f, 1.3f, 1.3f));
+		}
+		else
+		{
+			ItemMesh->SetRelativeScale3D(FVector(1.0f, 1.0f, 1.0f));
 		}
 	}
 }
