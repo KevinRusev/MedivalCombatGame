@@ -1,0 +1,2 @@
+
+#include "CombatActivatable.h"
