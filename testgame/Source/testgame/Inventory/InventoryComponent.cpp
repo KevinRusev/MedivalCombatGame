@@ -1,4 +1,3 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "InventoryComponent.h"
 #include "testgame.h"
@@ -13,7 +12,6 @@ void UInventoryComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// Initialize the items array with empty slots
 	Items.SetNum(MaxCapacity);
 }
 
@@ -25,7 +23,6 @@ bool UInventoryComponent::AddItem(const FItemData& Item)
 		return false;
 	}
 
-	// First, try to stack with existing items
 	if (Item.MaxStackSize > 1)
 	{
 		for (int32 i = 0; i < Items.Num(); ++i)
@@ -39,7 +36,6 @@ bool UInventoryComponent::AddItem(const FItemData& Item)
 				OnItemAdded.Broadcast(Items[i], i);
 				BroadcastUpdate();
 				
-				// If we couldn't add all, try to add the rest
 				if (AmountToAdd < Item.Quantity)
 				{
 					FItemData RemainingItem = Item;
@@ -52,7 +48,6 @@ bool UInventoryComponent::AddItem(const FItemData& Item)
 		}
 	}
 
-	// Find an empty slot
 	int32 EmptySlot = FindEmptySlot();
 	if (EmptySlot == -1)
 	{
@@ -60,7 +55,6 @@ bool UInventoryComponent::AddItem(const FItemData& Item)
 		return false;
 	}
 
-	// Add the item to the empty slot
 	Items[EmptySlot] = Item;
 	
 	OnItemAdded.Broadcast(Items[EmptySlot], EmptySlot);
@@ -82,7 +76,7 @@ bool UInventoryComponent::RemoveItem(int32 SlotIndex)
 	}
 
 	FItemData RemovedItem = Items[SlotIndex];
-	Items[SlotIndex] = FItemData(); // Reset to empty
+	Items[SlotIndex] = FItemData();
 	
 	OnItemRemoved.Broadcast(RemovedItem, SlotIndex);
 	BroadcastUpdate();
@@ -136,7 +130,6 @@ bool UInventoryComponent::HasSpaceForItem(const FItemData& Item) const
 		return false;
 	}
 
-	// Check for stackable space
 	if (Item.MaxStackSize > 1)
 	{
 		for (const FItemData& ExistingItem : Items)
@@ -148,7 +141,6 @@ bool UInventoryComponent::HasSpaceForItem(const FItemData& Item) const
 		}
 	}
 
-	// Check for empty slot
 	return FindEmptySlot() != -1;
 }
 
@@ -196,10 +188,8 @@ bool UInventoryComponent::UseItem(int32 SlotIndex)
 		return false;
 	}
 
-	// Decrease quantity
 	Item.Quantity--;
 
-	// If no more items, clear the slot
 	if (Item.Quantity <= 0)
 	{
 		FItemData UsedItem = Item;
@@ -213,7 +203,7 @@ bool UInventoryComponent::UseItem(int32 SlotIndex)
 
 int32 UInventoryComponent::FindSlotForItem(const FItemData& Item) const
 {
-	// First, try to find a stackable slot
+	
 	if (Item.MaxStackSize > 1)
 	{
 		for (int32 i = 0; i < Items.Num(); ++i)
@@ -225,7 +215,6 @@ int32 UInventoryComponent::FindSlotForItem(const FItemData& Item) const
 		}
 	}
 
-	// Otherwise, find an empty slot
 	return FindEmptySlot();
 }
 
