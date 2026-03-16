@@ -1,4 +1,3 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "EnemyAIController.h"
 #include "EnemyCharacter.h"
@@ -13,6 +12,11 @@ AEnemyAIController::AEnemyAIController()
 	LoseSightTimer = 0.f;
 	LoseSightDuration = 5.f;
 	AcceptanceRadius = 100.f;
+
+	RepathInterval = 0.25f;
+	RepathMoveThreshold = 200.f;
+	LastRepathTime = -1000.f;
+	LastRequestedTargetLocation = FVector::ZeroVector;
 }
 
 void AEnemyAIController::BeginPlay()
@@ -36,52 +40,70 @@ void AEnemyAIController::Tick(float DeltaTime)
 		return;
 	}
 
+	if (ControlledEnemy->IsAttacking() || ControlledEnemy->IsHitReacting())
+	{
+		return;
+	}
+
 	AActor* Target = ControlledEnemy->GetTargetActor();
 
-	if (Target)
+	if (!Target)
 	{
-		// Check line of sight
-		bool bCanSeeTarget = LineOfSightTo(Target);
-
-		if (bCanSeeTarget)
-		{
-			// Reset lose sight timer when we can see target
-			LoseSightTimer = 0.f;
-			
-			if (!bIsChasing)
-			{
-				ChaseTarget(Target);
-			}
-			else
-			{
-				// Update movement destination
-				MoveToActor(Target, AcceptanceRadius);
-			}
-		}
-		else
-		{
-			// Can't see target, start counting
-			LoseSightTimer += DeltaTime;
-
-			if (LoseSightTimer >= LoseSightDuration)
-			{
-				// Lost target for too long, give up
-				StopChasing();
-				ControlledEnemy->SetTargetActor(nullptr);
-			}
-			else if (bIsChasing)
-			{
-				// Keep moving to last known position
-				MoveToActor(Target, AcceptanceRadius);
-			}
-		}
-	}
-	else
-	{
-		// No target, stop chasing
 		if (bIsChasing)
 		{
 			StopChasing();
+		}
+		ClearFocus(EAIFocusPriority::Gameplay);
+		return;
+	}
+
+	const bool bCanSeeTarget = LineOfSightTo(Target);
+
+	if (bCanSeeTarget)
+	{
+		LoseSightTimer = 0.f;
+
+		if (!bIsChasing)
+		{
+			ChaseTarget(Target);
+		}
+		else
+		{
+			
+			const float Now = GetWorld()->GetTimeSeconds();
+			const float DistSq = FVector::DistSquared(Target->GetActorLocation(), LastRequestedTargetLocation);
+			if ((Now - LastRepathTime) >= RepathInterval ||
+				DistSq >= FMath::Square(RepathMoveThreshold))
+			{
+				MoveToActor(Target, AcceptanceRadius);
+				LastRepathTime = Now;
+				LastRequestedTargetLocation = Target->GetActorLocation();
+			}
+		}
+
+		SetFocus(Target, EAIFocusPriority::Gameplay);
+	}
+	else
+	{
+		ClearFocus(EAIFocusPriority::Gameplay);
+
+		LoseSightTimer += DeltaTime;
+
+		if (LoseSightTimer >= LoseSightDuration)
+		{
+			StopChasing();
+			ControlledEnemy->SetTargetActor(nullptr);
+		}
+		else if (bIsChasing)
+		{
+			
+			const float Now = GetWorld()->GetTimeSeconds();
+			if ((Now - LastRepathTime) >= RepathInterval)
+			{
+				MoveToActor(Target, AcceptanceRadius);
+				LastRepathTime = Now;
+				LastRequestedTargetLocation = Target->GetActorLocation();
+			}
 		}
 	}
 }
@@ -96,8 +118,9 @@ void AEnemyAIController::ChaseTarget(AActor* Target)
 	bIsChasing = true;
 	LoseSightTimer = 0.f;
 
-	// Start moving to target
 	MoveToActor(Target, AcceptanceRadius);
+	LastRepathTime = GetWorld()->GetTimeSeconds();
+	LastRequestedTargetLocation = Target->GetActorLocation();
 
 	UE_LOG(LogTemp, Log, TEXT("Enemy started chasing %s"), *Target->GetName());
 }
@@ -106,6 +129,7 @@ void AEnemyAIController::StopChasing()
 {
 	bIsChasing = false;
 	StopMovement();
+	ClearFocus(EAIFocusPriority::Gameplay);
 
 	UE_LOG(LogTemp, Log, TEXT("Enemy stopped chasing"));
 }
