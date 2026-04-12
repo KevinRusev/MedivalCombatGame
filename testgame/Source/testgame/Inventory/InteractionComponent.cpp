@@ -1,4 +1,3 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "InteractionComponent.h"
 #include "PickupItem.h"
@@ -12,7 +11,7 @@ UInteractionComponent::UInteractionComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	
-	InteractionDistance = 500.f; // Increased for easier pickup
+	InteractionDistance = 500.f;
 	TraceChannel = ECC_Visibility;
 	CurrentLookAtItem = nullptr;
 	PreviousLookAtItem = nullptr;
@@ -30,17 +29,15 @@ void UInteractionComponent::TickComponent(float DeltaTime, ELevelTick TickType, 
 
 	PerformInteractionTrace();
 
-	// Check for look-at changes
 	if (CurrentLookAtItem != PreviousLookAtItem)
 	{
-		// Unhighlight previous item
+		
 		if (PreviousLookAtItem && IsValid(PreviousLookAtItem))
 		{
 			PreviousLookAtItem->SetHighlighted(false);
 			OnStopLookingAtItem.Broadcast();
 		}
 
-		// Highlight new item
 		if (CurrentLookAtItem)
 		{
 			CurrentLookAtItem->SetHighlighted(true);
@@ -59,14 +56,12 @@ bool UInteractionComponent::TryInteract()
 		return false;
 	}
 
-	// Check if we have an inventory to add to
 	if (!InventoryComponent)
 	{
 		UE_LOG(Logtestgame, Warning, TEXT("InteractionComponent has no InventoryComponent set"));
 		return false;
 	}
 
-	// Check if inventory has space
 	FItemData ItemData = CurrentLookAtItem->GetItemData();
 	if (!InventoryComponent->HasSpaceForItem(ItemData))
 	{
@@ -74,28 +69,23 @@ bool UInteractionComponent::TryInteract()
 		return false;
 	}
 
-	// Get the mesh from the pickup item for holding (if not already set)
 	if (!ItemData.HeldMesh && CurrentLookAtItem->GetItemMesh() && CurrentLookAtItem->GetItemMesh()->GetStaticMesh())
 	{
 		ItemData.HeldMesh = CurrentLookAtItem->GetItemMesh()->GetStaticMesh();
 	}
 
-	// Add item to inventory
 	if (InventoryComponent->AddItem(ItemData))
 	{
 		UE_LOG(Logtestgame, Log, TEXT("Successfully picked up item: %s"), *ItemData.ItemID.ToString());
 		
-		// Equip the item in the character's hand
 		AtestgameCharacter* Character = Cast<AtestgameCharacter>(GetOwner());
 		if (Character)
 		{
 			Character->EquipItem(ItemData);
 		}
 		
-		// Notify the item it was picked up
 		CurrentLookAtItem->OnPickedUp(GetOwner());
 		
-		// Clear current look at item since it's being destroyed
 		CurrentLookAtItem = nullptr;
 		PreviousLookAtItem = nullptr;
 		
@@ -119,7 +109,6 @@ void UInteractionComponent::PerformInteractionTrace()
 		return;
 	}
 
-	// Get camera location and forward vector
 	FVector CameraLocation;
 	FRotator CameraRotation;
 	PC->GetPlayerViewPoint(CameraLocation, CameraRotation);
@@ -132,14 +121,13 @@ void UInteractionComponent::PerformInteractionTrace()
 	QueryParams.AddIgnoredActor(GetOwner());
 	QueryParams.bTraceComplex = false;
 
-	// Use a sphere trace for easier detection
 	bool bHit = GetWorld()->SweepSingleByChannel(
 		HitResult,
 		TraceStart,
 		TraceEnd,
 		FQuat::Identity,
 		TraceChannel,
-		FCollisionShape::MakeSphere(30.f), // 30 unit radius sphere trace
+		FCollisionShape::MakeSphere(30.f),
 		QueryParams
 	);
 
