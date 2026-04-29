@@ -13,5 +13,8 @@ class AtestgameGameMode : public AGameModeBase
 public:
 	
 	AtestgameGameMode();
+
+protected:
+	virtual void BeginPlay() override;
 };
-
+
